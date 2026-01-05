@@ -54,7 +54,6 @@ def run(
                 ocp_problem = test_set.formulate_OCP_problem(problem, solver, settings)
                 ctx = solve_problem(ocp_problem)
                 nb_calls += 1
-                nb_calls_since_last_save += 1
                 results.update(problem, solver, settings, ctx)
                 if progress_bar is not None:
                     progress_bar.update(1)
