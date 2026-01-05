@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-#
-# SPDX-License-Identifier: Apache-2.0
-# Copyright 2022 Stéphane Caron
-
 """Main function of the benchmark."""
 
 from time import perf_counter
@@ -19,10 +13,6 @@ def solve_problem(ocp):
 
     Args:
         ocp_problem: The OCP problem to solve.
-
-    Returns:
-        cost: The cost of the OCP solution.
-        runtime: The time taken to solve the problem.
     """
     ctx = {}
     ocp_solver = AcadosOcpSolver(ocp, verbose=False)
@@ -42,8 +32,6 @@ def run(
     """
 
     nb_calls = 0
-    nb_calls_since_last_save = 0
-
     filtered_solvers = [
         solver
         for solver in test_set.solvers
@@ -70,11 +58,8 @@ def run(
                 results.update(problem, solver, settings, ctx)
                 if progress_bar is not None:
                     progress_bar.update(1)
-
         # Save results to file after problem has been fully processed
-        if nb_calls_since_last_save > 0:
-            results.write()
-            nb_calls_since_last_save = 0
+        results.write()
 
     if progress_bar is not None:
         progress_bar.close()
