@@ -6,7 +6,7 @@ from typing import Dict, Optional, Tuple, Union
 import numpy as np
 import pandas
 
-from problem_ocp import QP_Problem
+from problem_ocp import parametric_QP_Problem
 from test_set_ocp import TestSet
 
 
@@ -82,7 +82,9 @@ class Results:
                 df = pandas.concat([df, df_from_file])
 
         # Filter out problems from the CSV that are in the test set
-        problems = set(problem.name for problem in test_set)
+        for subdir in test_set.subdirs:
+            ocp_template = test_set.create_OCP_template(subdir)
+            problems = set(ocp_problem.ocp.name for ocp_problem in test_set.iter(ocp_template, subdir))
         test_set_df = df[df["problem"].isin(problems)]
         complementary_df = df[~df["problem"].isin(problems)]
 
@@ -108,7 +110,7 @@ class Results:
 
     def update(
         self,
-        problem: QP_Problem,
+        problem: parametric_QP_Problem,
         solver: str,
         settings: str,
         context: dict,
@@ -124,7 +126,7 @@ class Results:
         """
         self.df = self.df.drop(
             self.df.index[
-                (self.df["problem"] == problem.name)
+                (self.df["problem"] == problem.ocp.name)
                 & (self.df["solver"] == solver)
                 & (self.df["settings"] == settings)
             ]
@@ -134,7 +136,7 @@ class Results:
                 self.df,
                 pandas.DataFrame(
                     {
-                        "problem": [problem.name],
+                        "problem": [problem.ocp.name],
                         "solver": [solver],
                         "settings": [settings],
                         "cost": [context['cost']],

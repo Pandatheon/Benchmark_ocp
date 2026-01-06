@@ -11,9 +11,9 @@ def generate_problems():
 
     for i in range(num_problems):
         # Random dimensions
-        nx = np.random.randint(2, 21) # [2, 20]
-        nu = np.random.randint(1, 11) # [1, 10]
-        
+        nx = 10
+        nu = 2
+
         # Simple Dynamics: x_{k+1} = A x_k + B u_k
         # Generating LTI system for simplicity
         A = np.random.randn(nx, nx)

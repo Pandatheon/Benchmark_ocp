@@ -1,50 +1,85 @@
 """Matrix-vector representation of a quadratic program."""
 
-import os
-
 import numpy as np
+import casadi as ca
+from acados_template import AcadosOcp, AcadosParamManager, AcadosParam
 
-
-class QP_Problem():
+class parametric_QP_Problem():
     """
     Quadratic program with OCP structure.
     Q and R as cost matrices,
     A and B as dynamics matrices.
     """
+
     def __init__(
         self,
         N: int,
-        Q: np.ndarray,
-        R: np.ndarray,
-        Q_e: np.ndarray,
-        A: np.ndarray,
-        B: np.ndarray,
-        name: str,
+        nx: int,
+        nu: int,
+        solver: str,
+        settings: str,
     ):
-        """Quadratic program in qpsolvers format."""
-        self.N = N
-        self.Q = Q
-        self.R = R
-        self.Q_e = Q_e
-        self.A = A
-        self.B = B
-        self.name = name
+        '''
+        Formulate an OCP problem for acados from QP_Problem.
+        '''
+        ocp = AcadosOcp()
+        # params
+        A_param = AcadosParam("A", np.zeros((nx, nx)))
+        B_param = AcadosParam("B", np.zeros((nx, nu)))
+        Q_param = AcadosParam("Q", np.zeros((nx, nx)))
+        R_param = AcadosParam("R", np.zeros((nu, nu)))
 
-    @staticmethod
-    def load(file: str):
+        param_manager = AcadosParamManager([A_param, B_param, Q_param, R_param])
+        param_manager.N_horizon = N
+
+        ocp.model.name = 'parametric_QP_OCP'
+
+        # set up model
+        x = ca.SX.sym("x", nx)
+        u = ca.SX.sym("u", nu)
+        ocp.model.x = x
+        ocp.model.u = u
+        ocp.model.p = param_manager.get_p_stagewise_expression()
+
+        # dynamics
+        A_expr = param_manager.get_expression("A")
+        B_expr = param_manager.get_expression("B")
+        f_expl = ca.mtimes(A_expr, x) + ca.mtimes(B_expr, u)
+        ocp.model.disc_dyn_expr = f_expl
+
+        # get matrices
+        Q = param_manager.get_expression("Q")
+        R = param_manager.get_expression("R")
+
+        # set up cost
+        x_res = ocp.model.x
+        u_res = ocp.model.u
+        ocp.cost.cost_type = "EXTERNAL"
+        ocp.model.cost_expr_ext_cost = 0.5 * (x_res.T @ Q @ x_res + u_res.T @ R @ u_res)
+        ocp.cost.cost_type_e = "EXTERNAL"
+        ocp.model.cost_expr_ext_cost_e = 0.5 * (x_res.T @ Q @ x_res)
+
+        ocp.parameter_values = param_manager.get_p_stagewise_values(stage=0)
+        # set options
+        ocp.solver_options.tf = 1.0*N
+        ocp.solver_options.N_horizon = N
+        ocp.solver_options.qp_solver = solver if solver is not None else 'PARTIAL_CONDENSING_HPIPM'
+        ocp.solver_options.hessian_approx = 'EXACT'
+        ocp.solver_options.integrator_type = 'DISCRETE'
+        if settings == 'default':
+            pass
+
+        self.ocp = ocp
+        self.param_manager = param_manager
+
+    def populate_manager(self, file: str):
         """Load problem from file.
-
         Args:
             file: Path to the file to read.
         """
-        name = os.path.splitext(os.path.basename(file))[0]
         loaded = np.load(file)
-        return QP_Problem(
-            int(loaded["N"]),
-            loaded["Q"],
-            loaded["R"],
-            loaded["Q_e"],
-            loaded["A"],
-            loaded["B"],
-            name,
-        )
+        for i in range(self.ocp.solver_options.N_horizon):
+            self.param_manager.set_value(name="A", value=loaded["A"], stage=i)
+            self.param_manager.set_value(name="B", value=loaded["B"], stage=i)
+            self.param_manager.set_value(name="Q", value=loaded["Q"], stage=i)
+            self.param_manager.set_value(name="R", value=loaded["R"], stage=i)
