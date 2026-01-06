@@ -7,15 +7,18 @@ from test_set_ocp import TestSet
 from results_ocp import Results
 
 from acados_template import AcadosOcpSolver
+from problem_ocp import parametric_QP_Problem
 
-def solve_problem(ocp):
+def solve_problem(ocp_solver: AcadosOcpSolver, ocp_problem: parametric_QP_Problem) -> dict:
     """Solve the given OCP problem.
 
     Args:
-        ocp_problem: The OCP problem to solve.
+        OCP_problem: The OCP problem to solve.
     """
     ctx = {}
-    ocp_solver = AcadosOcpSolver(ocp, verbose=False)
+    for i in range(ocp_problem.ocp.solver_options.N_horizon + 1):
+        param_value = ocp_problem.param_manager.get_p_stagewise_values(i)
+        ocp_solver.set(i, 'p', param_value)
     start_time = perf_counter()
     ctx['status'] = ocp_solver.solve()
     ctx['runtime'] = perf_counter() - start_time
@@ -31,7 +34,6 @@ def run(
     """Run a given test set and store results.
     """
 
-    nb_calls = 0
     filtered_solvers = [
         solver
         for solver in test_set.solvers
@@ -48,16 +50,18 @@ def run(
             initial=0,
         )
 
-    for problem in test_set:
-        for solver in filtered_solvers:
-            for settings in test_set.solver_settings:
-                ocp_problem = test_set.formulate_OCP_problem(problem, solver, settings)
-                ctx = solve_problem(ocp_problem)
-                nb_calls += 1
-                results.update(problem, solver, settings, ctx)
-                if progress_bar is not None:
-                    progress_bar.update(1)
-        # Save results to file after problem has been fully processed
+    for solver in filtered_solvers:
+        for settings in test_set.solver_settings:
+            ocp_solver = None
+            progress_bar.set_description(f"Solver: {solver}, Setting: {settings}")
+            for subdir in test_set.subdirs:
+                ocp_template = test_set.create_OCP_template(subdir, solver, settings)
+                ocp_solver = AcadosOcpSolver(ocp_template.ocp, verbose=False)
+                for ocp_problem in test_set.iter(ocp_template, subdir):
+                    ctx = solve_problem(ocp_solver, ocp_problem)
+                    results.update(ocp_problem, solver, settings, ctx)
+                    if progress_bar is not None:
+                        progress_bar.update(1)
         results.write()
 
     if progress_bar is not None:
