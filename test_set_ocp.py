@@ -24,10 +24,15 @@ class TestSet():
     def title(self) -> str:
         return "Model predictive control test set in OCP structure"
 
-    def __init__(self):
+    def __init__(self, 
+                 designated_solvers: list[str] = SolverSettings.IMPLEMENTED_SOLVERS, 
+                 designated_problem_sets: list[str] = None):
         """Initialize test set."""
 
-        candidate_solvers = SolverSettings.IMPLEMENTED_SOLVERS
+        candidate_solvers = set(
+            solver 
+            for solver in SolverSettings.IMPLEMENTED_SOLVERS 
+            if solver in designated_solvers) 
         solvers = set(
             solver
             for solver in candidate_solvers
@@ -42,14 +47,16 @@ class TestSet():
         current_dir = os.path.dirname(os.path.abspath(__file__))
         data_dir = os.path.join(current_dir, "data")
         self.data_dir = data_dir
-        self.subdirs = os.listdir(self.data_dir)
+        self.subdirs = [subdir for subdir in os.listdir(self.data_dir)
+                        if designated_problem_sets is None or subdir in designated_problem_sets]
 
     def iter(self, ocp_template: parametric_QP_Problem, subdir) -> Iterator[parametric_QP_Problem]:
         """populate parameter manager one by one."""
         for fname in os.listdir(os.path.join(self.data_dir, subdir)):
-            ocp_template.ocp.name = subdir + "_" + fname.replace('.npz','')
-            ocp_template.populate_manager(os.path.join(self.data_dir, subdir, fname))
-            yield ocp_template
+            if fname.endswith('.json'):
+                ocp_template.ocp.name = subdir + "_" + fname.replace('.json','')
+                ocp_template.populate_manager(os.path.join(self.data_dir, subdir, fname))
+                yield ocp_template
 
     def create_OCP_template(self, subdir: str, solver: str = None, settings: str = None) -> parametric_QP_Problem:
         N, nx, nu = read_problem_size_from_dir(subdir)
@@ -66,5 +73,6 @@ class TestSet():
         """Count the number of problems in the test set."""
         N_problems = 0
         for subdir in self.subdirs:
-            N_problems += len(os.listdir(os.path.join(self.data_dir, subdir)))
+            json_files = [f for f in os.listdir(os.path.join(self.data_dir, subdir)) if f.endswith('.json')]
+            N_problems += len(json_files)
         return N_problems

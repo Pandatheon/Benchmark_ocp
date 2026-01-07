@@ -3,6 +3,7 @@
 import numpy as np
 import casadi as ca
 from acados_template import AcadosOcp, AcadosParamManager, AcadosParam
+from utils import read_matrix_list
 
 class parametric_QP_Problem():
     """
@@ -77,9 +78,13 @@ class parametric_QP_Problem():
         Args:
             file: Path to the file to read.
         """
-        loaded = np.load(file)
+        Q_list = read_matrix_list(file, "Q")
+        R_list = read_matrix_list(file, "R")
+        A_list = read_matrix_list(file, "A")
+        B_list = read_matrix_list(file, "B")
         for i in range(self.ocp.solver_options.N_horizon):
-            self.param_manager.set_value(name="A", value=loaded["A"], stage=i)
-            self.param_manager.set_value(name="B", value=loaded["B"], stage=i)
-            self.param_manager.set_value(name="Q", value=loaded["Q"], stage=i)
-            self.param_manager.set_value(name="R", value=loaded["R"], stage=i)
+            self.param_manager.set_value(name="A", value=A_list[i], stage=i)
+            self.param_manager.set_value(name="B", value=B_list[i], stage=i)
+            self.param_manager.set_value(name="Q", value=Q_list[i], stage=i)
+            self.param_manager.set_value(name="R", value=R_list[i], stage=i)
+        self.param_manager.set_value(name="Q", value=Q_list[-1], stage=self.ocp.solver_options.N_horizon)

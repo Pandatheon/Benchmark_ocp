@@ -28,29 +28,22 @@ def solve_problem(ocp_solver: AcadosOcpSolver, ocp_problem: parametric_QP_Proble
 def run(
     test_set: TestSet,
     results: Results,
-    designated_solvers: list[str] = None,
     verbose: bool = False,
 ) -> None:
     """Run a given test set and store results.
     """
 
-    filtered_solvers = [
-        solver
-        for solver in test_set.solvers
-        if designated_solvers is None or solver in designated_solvers
-    ]
-
     progress_bar = None
     if verbose:
         nb_problems = test_set.count_problems()
-        nb_solvers = len(filtered_solvers)
+        nb_solvers = len(test_set.solvers)
         nb_settings = len(test_set.solver_settings)
         progress_bar = tqdm(
             total=nb_problems * nb_solvers * nb_settings,
             initial=0,
         )
 
-    for solver in filtered_solvers:
+    for solver in test_set.solvers:
         for settings in test_set.solver_settings:
             ocp_solver = None
             progress_bar.set_description(f"Solver: {solver}, Setting: {settings}")
