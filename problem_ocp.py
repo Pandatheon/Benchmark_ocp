@@ -60,6 +60,8 @@ class parametric_QP_Problem():
         ocp.cost.cost_type_e = "EXTERNAL"
         ocp.model.cost_expr_ext_cost_e = 0.5 * (x_res.T @ Q @ x_res)
 
+        ocp.constraints.x0 = np.ones((nx, ))
+
         ocp.parameter_values = param_manager.get_p_stagewise_values(stage=0)
         # set options
         ocp.solver_options.tf = 1.0*N
@@ -67,6 +69,8 @@ class parametric_QP_Problem():
         ocp.solver_options.qp_solver = solver if solver is not None else 'PARTIAL_CONDENSING_HPIPM'
         ocp.solver_options.hessian_approx = 'EXACT'
         ocp.solver_options.integrator_type = 'DISCRETE'
+        ocp.solver_options.nlp_solver_max_iter = 1
+        ocp.solver_options.eval_residual_at_max_iter = True
         if settings == 'default':
             pass
 
