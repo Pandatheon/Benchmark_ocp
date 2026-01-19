@@ -9,7 +9,7 @@ from results_ocp import Results
 from acados_template import AcadosOcpSolver
 from problem_ocp import parametric_QP_Problem
 
-def solve_problem(ocp_solver: AcadosOcpSolver, ocp_problem: parametric_QP_Problem) -> dict:
+def solve_problem(ocp_solver: AcadosOcpSolver, ocp_problem: parametric_QP_Problem, repeat_times: int = 10) -> dict:
     """Solve the given OCP problem.
 
     Args:
@@ -19,9 +19,17 @@ def solve_problem(ocp_solver: AcadosOcpSolver, ocp_problem: parametric_QP_Proble
     for i in range(ocp_problem.ocp.solver_options.N_horizon + 1):
         param_value = ocp_problem.param_manager.get_p_stagewise_values(i)
         ocp_solver.set(i, 'p', param_value)
-    start_time = perf_counter()
-    ctx['status'] = ocp_solver.solve()
-    ctx['runtime'] = perf_counter() - start_time
+    runtime = 1e4
+    for _ in range(repeat_times):
+        start_time = perf_counter()
+        status = ocp_solver.solve()
+        runtime = min(runtime, perf_counter() - start_time)
+        iter = sum(ocp_solver.get_stats('qp_iter'))
+        sqp_iter = ocp_solver.get_stats('sqp_iter')
+        ocp_solver.reset()
+    ctx['status'] = status
+    ctx['iterations'] = iter + sqp_iter
+    ctx['runtime'] = runtime
     ctx['cost'] = ocp_solver.get_cost()
     return ctx
 

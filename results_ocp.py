@@ -62,6 +62,7 @@ class Results:
                 "solver",
                 "settings",
                 "cost",
+                "iterations",
                 "runtime",
                 "status",
             ],
@@ -71,6 +72,7 @@ class Results:
                 "solver": str,
                 "settings": str,
                 'cost': float,
+                'iterations': int,
                 "runtime": float,
                 "status": int,
             }
@@ -140,6 +142,7 @@ class Results:
                         "solver": [solver],
                         "settings": [settings],
                         "cost": [context['cost']],
+                        'iterations': [context['iterations']],
                         "runtime": [context['runtime']],
                         "status": [context['status']],
                     }
