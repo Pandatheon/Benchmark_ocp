@@ -6,9 +6,6 @@ from typing import Dict, Iterator, Optional, Set, Tuple
 from problem_ocp import parametric_QP_Problem
 from solver_settings_ocp import SolverSettings
 
-import casadi as ca
-from acados_template import AcadosOcp, AcadosModel
-
 from utils import read_problem_size_from_dir
 
 class TestSet():

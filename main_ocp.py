@@ -9,18 +9,18 @@ def main():
     """
     Main function of the script.
     """
-    dessignated_solvers = [
+    designated_solvers = [
         'PARTIAL_CONDENSING_HPIPM',
         'FULL_CONDENSING_QPOASES',
         'FULL_CONDENSING_HPIPM',
     ]
-    dessignated_problem_sets = [
+    designated_problem_sets = [
         '20_10*2_Problem_set',
     ]
 
     test_set = TestSet(
-        designated_solvers=dessignated_solvers,
-        designated_problem_sets=dessignated_problem_sets,
+        designated_solvers=designated_solvers,
+        designated_problem_sets=designated_problem_sets,
     )
     result_path = f"results/qpbenchmark_results.csv"
     results = Results(file_path=result_path, test_set=test_set)
